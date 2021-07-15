@@ -1,17 +1,19 @@
-#include<linux/init.h>
-#include<linux/module.h>
-#include<linux/kernel.h>
-int __init init_module(void)
+#include<linux/fs.h>
+dev_t pdevid;
+int ndevices=1;
+static int __init pseudo_init(void)
 {
-printk("Hello world ..welcome sai \n");
+int ret;
+ret =alloc_chrdev_region(&pdevid, 0,ndevices,"pseudo_sample");
+if(ret){
+printk("Pesudo: Failed to register diver \n");
+return -EINVAL;
+}
+printk("Sucessfully registered, major =%d,minor =%d\n", MAJOR(pdevid),MINOR(pdevid));
+printk("Pesudo Driver Smaple..welcome\n");
 return 0;
 }
-void __exit cleanup_module(void)
-{
-printk("Bye , leaving the world\n");
+static void __exit psuedo_exit(void){
+unregister_chrdev_region(pdevid, ndevices);
+printk("Pesudo Driver Sample..Bye \n");
 }
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Your name");
-MODULE_DESCRIPTION("A Simple Module");
-
-
