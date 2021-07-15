@@ -96,7 +96,7 @@ struct file_operations fops ={
 };
 
 
-
+// how to write the &cdev from the pobj->cdev and make these changes for the cdev,kfifo,pdev;
 
 static int __init psuedo_init(void)
 {
