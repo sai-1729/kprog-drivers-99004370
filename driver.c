@@ -110,28 +110,29 @@ if(ret){
 printk("Pesudo: Failed to register diver \n");
 return -EINVAL;
 }
-cdev_init(&cdev,&fops);
-kobject_set_name(&cdev.kobj,"pdevice%d",1);
-ret =cdev_add(&cdev,pdevid,1);
+cdev_init(&pobj->cdev,&fops);
+kobject_set_name(&pobj->cdev.kobj,"pdevice%d",1);
+ret =cdev_add(&pobj->cdev,pdevid,1);
 pdev =device_create(pclass,NULL,pdevid,NULL,"psample%d",i);
 
 
 //kfifo
-kfifo_init(&kfifo,pbuffer,MAX_SIZE);
+kfifo_init(&pobj->kfifo,pbuffer,MAX_SIZE);
 
 printk("Sucessfully registered, major =%d,minor =%d\n", MAJOR(pdevid),MINOR(pdevid));
 printk("Pesudo Driver Smaple..welcome\n");
 return 0;
 }
 static void __exit psuedo_exit(void){
-cdev_del(&cdev);
+cdev_del(&pobj-> cdev);
 device_destroy(pclass,pdevid);
 unregister_chrdev_region(pdevid, ndevices);
 printk("Pesudo  Driver Sample..Bye \n");
 class_destroy(pclass);
-kfree(pobj);
-kfifo_free(kfifo);
+
+kfifo_free(pobj->kfifo);
 kfree(pbuffer);
+kfree(pobj);
 }
 module_init(psuedo_init);
 module_exit(psuedo_exit);
