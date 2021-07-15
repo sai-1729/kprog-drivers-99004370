@@ -45,7 +45,7 @@ return 0;
 int ret,rcount;
 rcount =size;
 if(rcount >kfifo_len(&myfifo)){
-rcount =kfifo_len(&kfifo);
+rcount =kfifo_len(&pobj->kfifo);
 }
 char *tbuf =kmalloc(rcount,GFP_KERNEL);
 kfifo_out(&myfifo,tbuf,rcount);
@@ -113,7 +113,7 @@ return -EINVAL;
 cdev_init(&pobj->cdev,&fops);
 kobject_set_name(&pobj->cdev.kobj,"pdevice%d",1);
 ret =cdev_add(&pobj->cdev,pdevid,1);
-pdev =device_create(pclass,NULL,pdevid,NULL,"psample%d",i);
+pobj->pdev =device_create(pclass,NULL,pdevid,NULL,"psample%d",i);
 
 
 //kfifo
