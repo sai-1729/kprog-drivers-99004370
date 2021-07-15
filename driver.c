@@ -7,6 +7,9 @@
 struct cdev cdev;
 dev_t pdevid;
 int ndevices=1;
+struct device *pdev;
+struct class *pclass;
+
 
 
 int pseudo_open(struct inode* inode , struct file* file)
@@ -43,6 +46,8 @@ struct file_operations fops ={
 static int __init psuedo_init(void)
 {
 int ret;
+int i=0;
+pclass =class_create(THIS_MODULE,"pseudo_class");
 ret =alloc_chrdev_region(&pdevid, 0,ndevices,"pseudo_sample");
 if(ret){
 printk("Pesudo: Failed to register diver \n");
@@ -51,15 +56,17 @@ return -EINVAL;
 cdev_init(&cdev,&fops);
 kobject_set_name(&cdev.kobj,"pdevice%d",1);
 ret =cdev_add(&cdev,pdevid,1);
-
+pdev =device_create(pclass,NULL,pdevid,NULL,"psample%d",i);
 printk("Sucessfully registered, major =%d,minor =%d\n", MAJOR(pdevid),MINOR(pdevid));
 printk("Pesudo Driver Smaple..welcome\n");
 return 0;
 }
 static void __exit psuedo_exit(void){
-unregister_chrdev_region(pdevid, ndevices);
 cdev_del(&cdev);
+device_destroy(pclass,pdevid);
+unregister_chrdev_region(pdevid, ndevices);
 printk("Pesudo  Driver Sample..Bye \n");
+class_destroy(pclass);
 }
 module_init(psuedo_init);
 module_exit(psuedo_exit);
