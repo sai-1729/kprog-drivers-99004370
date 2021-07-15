@@ -9,19 +9,20 @@
 #include<linux/uaccess.h>
 #include<linux/kfifo.h>
 #define MAX_SIZE 1024
-
-struct cdev cdev;
 dev_t pdevid;
-int ndevices=1;
-struct device *pdev;
-struct class *pclass;
-struct kfifo kfifo;
+typedef struct priv_obj{
+	struct cdev cdev;
+	struct device *pdev;
+	struct kfifo kfifo;
+}PRIV_OBJ;
+PRIV_OBJ* pobj;
 unsigned char *pbuffer;
+int ndevices=1;
 int rd_offset =0;
 int wr_offset =0;
 int buflen=0;
 
-
+struct class *pclass;
 int pseudo_open(struct inode* inode , struct file* file)
 {
 printk("Pseudo--open method \n");
@@ -102,6 +103,7 @@ static int __init psuedo_init(void)
 int ret;
 int i=0;
 pbuffer =kmalloc(MAX_SIZE,GFP_KERNEL);
+pobj =kmalloc(sizeof(PRIV_OBJ),GFP_KERNEL);
 pclass =class_create(THIS_MODULE,"pseudo_class");
 ret =alloc_chrdev_region(&pdevid, 0,ndevices,"pseudo_sample");
 if(ret){
@@ -127,6 +129,7 @@ device_destroy(pclass,pdevid);
 unregister_chrdev_region(pdevid, ndevices);
 printk("Pesudo  Driver Sample..Bye \n");
 class_destroy(pclass);
+kfree(pobj);
 kfifo_free(kfifo);
 kfree(pbuffer);
 }
