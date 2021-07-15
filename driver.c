@@ -1,4 +1,5 @@
-
+// From the previous step to hwerer is , we dont need to use and track the read buffer and write buffer , it can be done automatically by the kfifo.
+// kfifo is just circular queue , first in first out. it is struct and it has in , out, data in internal defintion.
 #include<linux/fs.h>
 #include<linux/module.h>
 #include<linux/kernel.h>
@@ -6,6 +7,7 @@
 #include<linux/cdev.h>
 #include<linux/slab.h>
 #include<linux/uaccess.h>
+#include<linux/kfifo.h>
 #define MAX_SIZE 1024
 
 struct cdev cdev;
@@ -13,7 +15,7 @@ dev_t pdevid;
 int ndevices=1;
 struct device *pdev;
 struct class *pclass;
-
+struct kfifo kfifo;
 unsigned char *pbuffer;
 int rd_offset =0;
 int wr_offset =0;
@@ -34,48 +36,53 @@ return 0;
 ssize_t pseudo_read(struct file * file, char __user * ubuf , size_t size, loff_t * off)
 {
 printk("Pseudo--read method \n");
-if(buflen==0){
+if(kfifo_is_empty(&myfifo)){ // I guess error may be insatead pf using the myfifo they can use the kfifo. check after the code is shared.
 
 printk("buffer is empty\n");
 return 0;
 }
 int ret,rcount;
 rcount =size;
-if(rcount >buflen)
-rcount =buflen;
-ret =copy_to_user(ubuf,pbuffer ,rcount);//check once wther pbuffer or changed contracdictaory.
+if(rcount >kfifo_len(&myfifo)){
+rcount =kfifo_len(&kfifo);
+}
+char *tbuf =kmalloc(rcount,GFP_KERNEL);
+kfifo_out(&myfifo,tbuf,rcount);
+ret =copy_to_user(ubuf,tbuf ,rcount);//check once wther pbuffer or changed contracdictaory.
 if(ret)
 {
 printk("copy to user failed \n");
 return -EFAULT;
 }
-rd_offset +=rcount;
-buflen-=rcount;
+kfree(tbuf);
 return rcount;
 }
 ssize_t pseudo_write(struct file * file, const char __user * ubuf , size_t size, loff_t * off)
 {
-if(wr_offset>=MAX_SIZE)
+if(kfifo_is_full(&myfifo))
 {
-printk("buffe is full \n");
+printk("buffer is full \n");
 
 return -ENOSPC;
 }
 
 int ret,wcount;
 wcount =size;
-if (wcount > MAX_SIZE -wr_offset)
+if (wcount > kfifo_avail(&myfifo))
 {
-wcount = MAX_SIZE -wr_offset;
+wcount = fifo_avail(&myfifo)
 }
-ret =copy_from_user(pbuffer,ubuf,wcount);//this is also changed from code to future skills code
+char *tbuf =kmalloc(wcount,GFP_KERNEL);
+ret =copy_from_user(tbuf,ubuf,wcount);//this is also changed from code to future skills code
 
 if(ret){
 printk("copy from user failed\n");
 return -EFAULT;
 }
-wr_offset +=wcount;
-buflen+=wcount;
+kfifo_in(&myfifo,tbuf,wcount);
+kfree(tbuf);//free the memory allocated to the kbuff.
+//here we are copying from the user space to the kernel space using the copy from user command and crfeating another dummy
+// to copy again to the kfifo.
 
 printk("Pseudo--write method \n");
 return -ENOSPC;
@@ -105,6 +112,11 @@ cdev_init(&cdev,&fops);
 kobject_set_name(&cdev.kobj,"pdevice%d",1);
 ret =cdev_add(&cdev,pdevid,1);
 pdev =device_create(pclass,NULL,pdevid,NULL,"psample%d",i);
+
+
+//kfifo
+kfifo_init(&kfifo,pbuffer,MAX_SIZE);
+
 printk("Sucessfully registered, major =%d,minor =%d\n", MAJOR(pdevid),MINOR(pdevid));
 printk("Pesudo Driver Smaple..welcome\n");
 return 0;
@@ -115,6 +127,7 @@ device_destroy(pclass,pdevid);
 unregister_chrdev_region(pdevid, ndevices);
 printk("Pesudo  Driver Sample..Bye \n");
 class_destroy(pclass);
+kfifo_free(kfifo);
 kfree(pbuffer);
 }
 module_init(psuedo_init);
