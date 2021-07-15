@@ -1,6 +1,6 @@
-obj-m +=hello.o
-PWD=/workspace/modules/hello
-KSRC=/workspace/modules/
+obj-m +=step1.o
+PWD=/workspace/modules/step1
+KSRC=/workspace/modules/linux-4.14.202
 all:
 	make -C ${KSRC} M=${PWD} modules ARCH=arm CROSS_COMPILE=arm-linux-gnueabi-
 clean:
