@@ -10,6 +10,15 @@
 #include<linux/kfifo.h>
 #define MAX_SIZE 1024
 
+
+//itoctl headers
+
+
+#define IOC_MAGIC 'p'
+#define MY_IOCTL_LEN		_IO(IOC_MAGIC, 1)
+#define MY_IOCTL_AVAIL		_IO(IOC_MAGIC, 2)
+#define MY_IOCTL_RESET		_IO(IOC_MAGIC, 3)
+
 struct cdev cdev;
 dev_t pdevid;
 int ndevices=1;
@@ -87,11 +96,25 @@ kfree(tbuf);//free the memory allocated to the kbuff.
 printk("Pseudo--write method \n");
 return -ENOSPC;
 }
+
+
+static long pseuodo_ioctl(struct file *file, unsigned int cmd, unsigned long arg){
+	
+	int ret;
+	printkl("Pseudo --- ioctl method \n");
+	switch(cmd){
+		case MY_IOCTL_LEN :
+			printk("ioctl --kfifo length is %d\n", kfifo_len(&kfifo)
+
+
+
+
 struct file_operations fops ={
 	.open =pseudo_open,
 	.release =pseudo_close,
 	.write =pseudo_write,
 	.read = pseudo_read
+	.unlocked_ioctl=pseudo_ioctl
 };
 
 
